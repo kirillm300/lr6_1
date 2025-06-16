@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Полный исправленный файл MainWindow.xaml.cs
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,16 +7,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.ComponentModel;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 
 namespace LegalConsultation
 {
@@ -79,19 +72,17 @@ namespace LegalConsultation
             {
                 while (!token.IsCancellationRequested)
                 {
-                    // Exponential distribution for inter-arrival time (mean 3 min)
-                    double interArrivalTime = -Math.Log(1 - random.NextDouble()) * 3 * 60 * 1000;
+                    double interArrivalTime = -Math.Log(1 - random.NextDouble()) * 0.12 * 60 * 1000;
                     await Task.Delay((int)interArrivalTime, token);
 
-                    Client client = new Client(clientCounter++, random.Next(1, 6) == 5);
+                    Client client = new Client(clientCounter++, clientCounter % 5 == 0);
                     lock (queueLock)
                     {
                         clientQueue.Enqueue(client);
                         Dispatcher.Invoke(() => queueList.Add($"Client {client.Id} (Prefers high category: {client.PrefersHighCategory})"));
-                        LogToFile($"Client {client.Id} arrived at {DateTime.Now}");
+                        LogToFile($"Client {client.Id} arrived at {client.EnqueueTime}");
                     }
 
-                    // Start processing for the client
                     Task.Run(() => ProcessClient(client, token));
                 }
             }
@@ -109,14 +100,20 @@ namespace LegalConsultation
         private async Task ProcessClient(Client client, CancellationToken token)
         {
             Lawyer assignedLawyer = null;
-            bool semaphoreReleased = false; // Флаг для отслеживания освобождения семафора
+            bool semaphoreReleased = false;
+
             try
             {
-                DateTime enqueueTime = DateTime.Now;
-
                 if (client.PrefersHighCategory)
                 {
-                    await highCategorySemaphore.WaitAsync(token);
+                    if (highCategorySemaphore.CurrentCount == 0)
+                    {
+                        await highCategorySemaphore.WaitAsync(token);
+                    }
+                    else
+                    {
+                        await highCategorySemaphore.WaitAsync(token);
+                    }
                     assignedLawyer = lawyers[0];
                 }
                 else
@@ -129,13 +126,14 @@ namespace LegalConsultation
                     else
                     {
                         await regularLawyerSemaphore.WaitAsync(token);
+                        List<Lawyer> availableLawyers;
                         lock (queueLock)
                         {
-                            var availableLawyers = lawyers.Where(l => !l.IsHighCategory && !l.IsBusy).ToList();
-                            if (availableLawyers.Any())
-                            {
-                                assignedLawyer = availableLawyers[random.Next(availableLawyers.Count)];
-                            }
+                            availableLawyers = lawyers.Where(l => !l.IsHighCategory && !l.IsBusy).ToList();
+                        }
+                        if (availableLawyers.Any())
+                        {
+                            assignedLawyer = availableLawyers[random.Next(availableLawyers.Count)];
                         }
                     }
                 }
@@ -150,14 +148,13 @@ namespace LegalConsultation
                         Dispatcher.Invoke(() => queueList.Remove($"Client {client.Id} (Prefers high category: {client.PrefersHighCategory})"));
                     }
 
-                    double waitingTime = (DateTime.Now - enqueueTime).TotalSeconds;
+                    double waitingTime = (DateTime.Now - client.EnqueueTime).TotalSeconds;
                     lock (waitingTimes)
                     {
                         waitingTimes.Add(waitingTime);
                     }
 
-                    // Exponential distribution for service time (mean 1 minute)
-                    double serviceTime = -Math.Log(1 - random.NextDouble()) * 10 * 60 * 1000;
+                    double serviceTime = -Math.Log(1 - random.NextDouble()) * 1 * 60 * 1000;
                     LogToFile($"Client {client.Id} assigned to Lawyer {assignedLawyer.Id} at {DateTime.Now}, waiting time: {waitingTime:F2} sec");
                     await Task.Delay((int)serviceTime, token);
 
@@ -170,15 +167,12 @@ namespace LegalConsultation
                     {
                         regularLawyerSemaphore.Release();
                     }
-                    semaphoreReleased = true; // Помечаем, что семафор освобождён
+                    semaphoreReleased = true;
                     UpdateLawyersStatus();
                     LogToFile($"Client {client.Id} finished with Lawyer {assignedLawyer.Id} at {DateTime.Now}");
                 }
             }
-            catch (OperationCanceledException)
-            {
-                // Handle cancellation
-            }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
                 LogToFile($"Error processing client {client.Id}: {ex.Message}");
@@ -186,18 +180,13 @@ namespace LegalConsultation
             }
             finally
             {
-                // Освобождаем семафор только если он не был освобождён и юрист назначен
                 if (assignedLawyer != null && !semaphoreReleased)
                 {
                     assignedLawyer.IsBusy = false;
                     if (assignedLawyer.IsHighCategory)
-                    {
                         highCategorySemaphore.Release();
-                    }
                     else
-                    {
                         regularLawyerSemaphore.Release();
-                    }
                     UpdateLawyersStatus();
                 }
             }
@@ -261,11 +250,13 @@ namespace LegalConsultation
     {
         public int Id { get; }
         public bool PrefersHighCategory { get; }
+        public DateTime EnqueueTime { get; }
 
         public Client(int id, bool prefersHighCategory)
         {
             Id = id;
             PrefersHighCategory = prefersHighCategory;
+            EnqueueTime = DateTime.Now;
         }
     }
 
