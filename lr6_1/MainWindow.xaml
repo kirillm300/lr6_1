@@ -1,0 +1,29 @@
+﻿<Window x:Class="LegalConsultation.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Legal Consultation Simulation" Height="450" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Margin="10">
+            <Button x:Name="StartButton" Content="Start Simulation" Click="StartButton_Click" Margin="5"/>
+            <Button x:Name="StopButton" Content="Stop Simulation" Click="StopButton_Click" Margin="5" IsEnabled="False"/>
+        </StackPanel>
+        <Grid Grid.Row="1" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <GroupBox Header="Client Queue" Margin="5">
+                <ListBox x:Name="QueueListBox" Height="300"/>
+            </GroupBox>
+            <GroupBox Header="Lawyers Status" Grid.Column="1" Margin="5">
+                <ListBox x:Name="LawyersListBox" Height="300"/>
+            </GroupBox>
+        </Grid>
+        <TextBlock x:Name="AvgWaitingTimeText" Grid.Row="2" Margin="10" FontWeight="Bold"/>
+    </Grid>
+</Window>
