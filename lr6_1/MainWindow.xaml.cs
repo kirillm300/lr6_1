@@ -72,7 +72,7 @@ namespace LegalConsultation
             {
                 while (!token.IsCancellationRequested)
                 {
-                    double interArrivalTime = -Math.Log(1 - random.NextDouble()) * 0.12 * 60 * 1000;
+                    double interArrivalTime = -Math.Log(1 - random.NextDouble()) * 3 * 60 * 1000;
                     await Task.Delay((int)interArrivalTime, token);
 
                     Client client = new Client(clientCounter++, clientCounter % 5 == 0);
@@ -154,7 +154,7 @@ namespace LegalConsultation
                         waitingTimes.Add(waitingTime);
                     }
 
-                    double serviceTime = -Math.Log(1 - random.NextDouble()) * 1 * 60 * 1000;
+                    double serviceTime = -Math.Log(1 - random.NextDouble()) * 10 * 60 * 1000;
                     LogToFile($"Client {client.Id} assigned to Lawyer {assignedLawyer.Id} at {DateTime.Now}, waiting time: {waitingTime:F2} sec");
                     await Task.Delay((int)serviceTime, token);
 
