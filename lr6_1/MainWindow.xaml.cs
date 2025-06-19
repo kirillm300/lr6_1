@@ -79,7 +79,7 @@ namespace LegalConsultation
                     lock (queueLock)
                     {
                         clientQueue.Enqueue(client);
-                        Dispatcher.Invoke(() => queueList.Add($"Client {client.Id} (Prefers high category: {client.PrefersHighCategory})"));
+                        Dispatcher.Invoke(() => queueList.Add($"Клиент {client.Id} (Предпочитает высшую категорию: {client.PrefersHighCategory})"));
                         LogToFile($"Client {client.Id} arrived at {client.EnqueueTime}");
                     }
 
@@ -145,7 +145,7 @@ namespace LegalConsultation
                     lock (queueLock)
                     {
                         clientQueue.Dequeue();
-                        Dispatcher.Invoke(() => queueList.Remove($"Client {client.Id} (Prefers high category: {client.PrefersHighCategory})"));
+                        Dispatcher.Invoke(() => queueList.Remove($"Клиент {client.Id} (Предпочитает высшую категорию: {client.PrefersHighCategory})"));
                     }
 
                     double waitingTime = (DateTime.Now - client.EnqueueTime).TotalSeconds;
@@ -199,7 +199,7 @@ namespace LegalConsultation
                 lawyersStatus.Clear();
                 foreach (var lawyer in lawyers)
                 {
-                    lawyersStatus.Add($"Lawyer {lawyer.Id} {(lawyer.IsHighCategory ? "(High Category)" : "")}: {(lawyer.IsBusy ? "Busy" : "Free")}");
+                    lawyersStatus.Add($"Юрист {lawyer.Id} {(lawyer.IsHighCategory ? "(Высшая категория)" : "")}: {(lawyer.IsBusy ? "Занят" : "Свободен")}");
                 }
             });
         }
@@ -214,7 +214,7 @@ namespace LegalConsultation
             }
             Dispatcher.Invoke(() =>
             {
-                AvgWaitingTimeText.Text = $"Average Waiting Time: {avgWaitingTime:F2} seconds";
+                AvgWaitingTimeText.Text = $"Среднее время ожидания: {avgWaitingTime:F2} секунд";
             });
         }
 
